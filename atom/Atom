@@ -1,0 +1,8 @@
+import numpy as np
+
+
+
+
+class Atom:
+    """Representing an atom"""
+    def __init__(self):
