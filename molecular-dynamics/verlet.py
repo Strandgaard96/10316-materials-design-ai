@@ -9,7 +9,7 @@ class Verlet:
         self.v = 0
         self.m = 1
 
-    def run(self,N):
+    def run(self, N):
         t = np.arange(N)
         with open('log.txt', 'w') as file:
             for i in t:
