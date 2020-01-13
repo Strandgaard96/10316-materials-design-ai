@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 import ase.db
+import random
 
 # Import the relevant data
 
@@ -86,4 +87,54 @@ energies = [s.heat_of_formation_all for s in syss]
 
 hist=plt.hist(energies,bins=100)
 
+# Hyperparameters
+lam = 10E-4
+l = 1
+sigma = 0
+k_0 = 1
 
+# Construction of k
+def kvec(x,nodes):
+    k = np.zeros(len(nodes))
+    for i in range(len(nodes)):
+        k[i] = k_0*math.exp(-(np.linalg.norm(x-nodes[i,:]))**2/(2*l**2))
+    return k
+
+def construct_C(data):
+    C = np.zeros((data.shape[0], data.shape[1]))
+    for i in range(data.shape[0]):
+        for j in range(data.shape[1]):
+            C[i, j] = k_0*math.exp(-(np.linalg.norm(data[i,:]-data[j,:])) ** 2 / (2 * l ** 2))
+    np.fill_diagonal(C, C.diagonal() + sigma**2)
+    return C
+
+def calculate_fit(nodes, x_tofit,yp):
+    y_fit = np.zeros(len(nodes))
+    C = construct_C(nodes)
+
+    for i in range(x_tofit.shape[0]):
+        k = kvec(x_tofit[i,:], nodes)
+        y_fit[i] = np.transpose(k).dot(np.linalg.inv(C).dot(yp))
+        return y_fit
+
+def costruct_training(syss,elemdict, aniondict):
+    x = np.empty(8)
+    energy = np.zeros(20000)
+    for i,elem in enumerate(syss):
+        j = random.randrange(0,100);
+        if j< 3:
+            x = np.vstack([x,elemdict[elem.A_ion] + elemdict[elem.B_ion] + aniondict[elem.anion]])
+            energy[i] = elem.heat_of_formation_all
+    x = np.delete(x, 0, 0)
+    energy  = energy[energy != 0]
+    return x,energy
+
+def costruct_test():
+    x_tofit = np.array([[1,2,3,4,7,2,1,8],[1,2,3,4,5,6,7,8]])
+    return x_tofit
+
+
+if __name__ == '__main__':
+    xp,energy = costruct_training(syss,elemdict,aniondict)
+    x_tofit = costruct_test()
+    y_fit = calculate_fit(xp, x_tofit, energy)
