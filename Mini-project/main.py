@@ -87,8 +87,8 @@ energies = [s.heat_of_formation_all for s in syss]
 
 #hist=plt.hist(energies,bins=100)
 lam = 10E-4
-l = 0.5
 sigma = 0
+l = 1.3
 
 def find_k0(yp,prod):
     k_0 = (1/(len(yp))*np.transpose(yp).dot(prod))
@@ -115,11 +115,11 @@ def calculate_fit(nodes, x_tofit,yp):
     prod = np.linalg.inv(C).dot(yp)
     k_0 = find_k0(yp,prod)
     C = k_0*C
-    prod = np.linalg.inv(C).dot(yp)
+    prod = np.linalg.inv(C).dot(yp-np.average(yp))
 
     for i in range(x_tofit.shape[0]):
         k = kvec(x_tofit[i,:], nodes,k_0)
-        y_fit[i] = np.transpose(k).dot(prod)
+        y_fit[i] = np.transpose(k).dot(prod)+np.average(yp)
     return y_fit
 
 def costruct_training(syss,elemdict, aniondict):
@@ -127,7 +127,7 @@ def costruct_training(syss,elemdict, aniondict):
     energy = np.zeros(1)
     for i,elem in enumerate(syss):
         j = random.randrange(0,100);
-        if j<= 5:
+        if (j<= 5):
             x = np.vstack([x, elemdict[elem.A_ion] + elemdict[elem.B_ion] + aniondict[elem.anion]])
             energy = np.concatenate((energy, [elem.heat_of_formation_all]), axis=0)
     x = np.delete(x, 0, 0)
@@ -139,20 +139,27 @@ def costruct_test2(syss,elemdict, aniondict):
     energy = np.zeros(1)
     for i,elem in enumerate(syss):
         j = random.randrange(0,100);
-        if j<= 2:
+        if j<= 100:
             x = np.vstack([x, elemdict[elem.A_ion] + elemdict[elem.B_ion] + aniondict[elem.anion]])
             energy = np.concatenate((energy, [elem.heat_of_formation_all]), axis=0)
     x = np.delete(x, 0, 0)
     energy = np.delete(energy,0,0)
     return x,energy
 
-def costruct_test():
-    x_tofit = np.array([[1,2,3,4,7,2,1,8],[1,2,3,4,5,6,7,8]])
-    return x_tofit
-
 def construct_error(prediction, actual):
+    plt.figure()
     error = (abs(actual-prediction))/(abs(1+actual))*100
-    plt.plot(error)
+    plt.plot(error,label = f"Relative errror, l = {l}")
+    plt.ylabel("Relative error (\%)")
+    plt.xlabel("Instance")
+    plt.legend()
+
+    plt.figure()
+    plt.plot(np.arange(-1,5),np.arange(-1,5))
+    plt.plot(actual,prediction,"*",label = f"l = {l}")
+    plt.xlabel("Actual")
+    plt.ylabel("Prediction")
+    plt.legend()
     return error
 
 
