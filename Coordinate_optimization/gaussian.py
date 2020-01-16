@@ -5,86 +5,88 @@ import random
 
 # Prepare data
 
-#hist=plt.hist(energies,bins=100)
-lam = 10E-4
-sigma = 0.0678
-l = 1.3
+class GaussianFit:
 
-def find_k0(yp,prod):
-    k_0 = (1/(len(yp))*np.transpose(yp).dot(prod))
-    return k_0
+    def __init__(self,sigma, l):
+        self.lam = 10E-4
+        self.sigma = sigma
+        self.l = l
 
-# Construction of k
-def kvec(x,nodes,k_0):
-    k = np.zeros(len(nodes))
-    for i in range(len(nodes)):
-        k[i] = k_0*math.exp(-(np.linalg.norm(x-nodes[i,:]))**2/(2*l**2))
-    return k
+    def _find_k0(self, yp,prod):
+        k_0 = (1/(len(yp))*np.transpose(yp).dot(prod))
+        return k_0
 
-def construct_C(data):
-    C = np.zeros((data.shape[0], data.shape[0]))
-    for i in range(data.shape[0]):
-        for j in range(data.shape[0]):
-            C[i, j] = math.exp(-(np.linalg.norm(data[i,:]-data[j,:])) ** 2 / (2 * l ** 2))
-    np.fill_diagonal(C, C.diagonal() + sigma**2)
-    return C
+    # Construction of k
+    def _kvec(self, x,nodes,k_0):
+        k = np.zeros(len(nodes))
+        for i in range(len(nodes)):
+            k[i] = k_0*math.exp(-(np.linalg.norm(x-nodes[i,:]))**2/(2*self.l**2))
+        return k
 
-def calculate_fit(nodes, x_tofit,yp):
-    y_fit = np.zeros(x_tofit.shape[0])
-    C = construct_C(nodes)
-    prod = np.linalg.inv(C).dot(yp)
-    k_0 = find_k0(yp,prod)
-    C = k_0*C
-    prod = np.linalg.inv(C).dot(yp-np.average(yp))
+    def _construct_C(self, data):
+        C = np.zeros((data.shape[0], data.shape[0]))
+        for i in range(data.shape[0]):
+            for j in range(data.shape[0]):
+                C[i, j] = math.exp(-(np.linalg.norm(data[i,:]-data[j,:])) ** 2 / (2 * self.l ** 2))
+        np.fill_diagonal(C, C.diagonal() + self.sigma**2)
+        return C
 
-    for i in range(x_tofit.shape[0]):
-        k = kvec(x_tofit[i,:], nodes,k_0)
-        y_fit[i] = np.transpose(k).dot(prod)+np.average(yp)
-    return y_fit
+    def calculate_fit(self, nodes, x_tofit,yp):
+        y_fit = np.zeros(x_tofit.shape[0])
+        C = self._construct_C(nodes)
+        prod = np.linalg.inv(C).dot(yp)
+        k_0 = self._find_k0(yp,prod)
+        C = k_0*C
+        prod = np.linalg.inv(C).dot(yp-np.average(yp))
 
-def costruct_training(syss,elemdict, aniondict):
-    x = np.zeros((1, 8))
-    energy = np.zeros(1)
-    for i,elem in enumerate(syss):
-        j = random.randrange(0,100);
-        if (j<= 10):
-            x = np.vstack([x, elemdict[elem.A_ion] + elemdict[elem.B_ion] + aniondict[elem.anion]])
-            energy = np.concatenate((energy, [elem.heat_of_formation_all]), axis=0)
-    x = np.delete(x, 0, 0)
-    energy = np.delete(energy,0,0)
-    return x,energy
+        for i in range(x_tofit.shape[0]):
+            k = self._kvec(x_tofit[i,:], nodes,k_0)
+            y_fit[i] = np.transpose(k).dot(prod)+np.average(yp)
+        return y_fit
 
-def costruct_test2(syss,elemdict, aniondict):
-    x = np.zeros((1, 8))
-    energy = np.zeros(1)
-    for i,elem in enumerate(syss):
-        j = random.randrange(0,100);
-        if j<= 100:
-            x = np.vstack([x, elemdict[elem.A_ion] + elemdict[elem.B_ion] + aniondict[elem.anion]])
-            energy = np.concatenate((energy, [elem.heat_of_formation_all]), axis=0)
-    x = np.delete(x, 0, 0)
-    energy = np.delete(energy,0,0)
-    return x,energy
+    def costruct_training(self):
+        x_train = np.zeros((100,2))
+        f_value = np.zeros(100)
+        random.seed(10)
+        for i in range(100):
+            x_train[i,0] = random.uniform(-2,2)
+            x_train[i,1] = random.uniform(-1,3)
+            f_value[i] = np.log((2*(x_train[i,1]-x_train[i,0]**2))**2+(1-x_train[i,0])**2+1)
+        return x_train,f_value
 
-def construct_error(prediction, actual):
-    plt.figure()
-    error = (abs(actual-prediction))/(abs(1+actual))*100
-    plt.plot(error,label = f"Relative errror, l = {l}")
-    plt.ylabel("Relative error (\%)")
-    plt.xlabel("Instance")
-    plt.legend()
 
-    plt.figure()
-    plt.plot(np.arange(-1,5),np.arange(-1,5))
-    plt.plot(actual,prediction,"*",label = f"l = {l}")
-    plt.xlabel("Actual")
-    plt.ylabel("Prediction")
-    plt.legend()
-    return error
+    def costruct_test(self, n):
+        x_test = np.zeros((n,2))
+        f_test = np.zeros(n)
+        random.seed(11)
+        for j in range(n):
+            x_test[j, 0] = random.uniform(-2, 2)
+            x_test[j, 1] = random.uniform(-1, 3)
+            f_test[j] = np.log((2 * (x_test[j, 1] - x_test[j, 0] ** 2)) ** 2 + (1 - x_test[j, 0]) ** 2 + 1)
+        return x_test, f_test
+
+    def construct_error(self, prediction, actual):
+        plt.figure()
+        error = (abs(actual-prediction))/(abs(1+actual))*100
+        plt.plot(error,label = f"Relative errror, l = {self.l}")
+        plt.ylabel("Relative error (\%)")
+        plt.xlabel("Instance")
+        plt.legend()
+
+
+        plt.figure()
+        f = np.log((2*(x_train[:,1]-x_train[:,0]**2))**2+(1-x_train[:,0])**2+1)
+        plt.plot(f,f)
+        plt.plot(actual,prediction,"*",label = f"l = {self.l}")
+        plt.xlabel("Actual")
+        plt.ylabel("Prediction")
+        plt.legend()
+        return error
 
 
 if __name__ == '__main__':
-    xp,energy = costruct_training(syss,elemdict,aniondict)
-    x_tofit,energy_all = costruct_test2(syss,elemdict,aniondict)
-    y_fit = calculate_fit(xp, x_tofit, energy)
-    error = construct_error(y_fit, energy_all)
+    model = GaussianFit(0,0.63)
+    x_train, f_train = model.costruct_training()
+    x_test,f_test = model.costruct_test(1000)
+    y_fit = model.calculate_fit(x_train, x_test, f_train)
+    error = model.construct_error(y_fit, f_test)
