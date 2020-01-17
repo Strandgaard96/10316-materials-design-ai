@@ -2,11 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 import random
-import scipy.optimize
 
-# Prepare data
 
-class GaussianFit:
+class Fit:
+"""Non complete class to fit on the matrix fingerprint"""
 
     def __init__(self,sigma, l):
         self.lam = 10E-4
@@ -32,6 +31,25 @@ class GaussianFit:
         np.fill_diagonal(C, C.diagonal() + self.sigma**2)
         return C
 
+    def Coulomb(ase_obj):
+        pos = ase_obj.get_positions()
+        mass = ase_obj.get_atomic_numbers()
+
+        M = np.zeros((len(mass), len(mass)))
+
+        for i in range(len(mass)):
+            for j in range(len(mass)):
+                Z1 = mass[i]
+                Z2 = mass[j]
+                if i == j:
+                    M[i, j] = 0.5 * Z1 ** 2.4
+                else:
+                    M[i, j] = (Z1 * Z2) / (np.linalg.norm(pos[i] - pos[j]))
+        shap = M.shape
+        M = np.sort(M.flatten())
+        M = M.reshape(shap)
+        return M
+
     def calculate_fit(self, x_tofit,nodes,yp):
         y_fit = np.zeros(x_tofit.shape[0])
         C = self._construct_C(nodes)
@@ -43,20 +61,6 @@ class GaussianFit:
         for i in range(x_tofit.shape[0]):
             k = self._kvec(x_tofit[i,:], nodes,k_0)
             y_fit[i] = np.transpose(k).dot(prod)+np.average(yp)
-        return y_fit
-
-    def calculate_fit2(self, x_tofit, nodes, yp):
-        """ Method used together with minimizatino algorithm
-        the fit is calculated for single points called from scipy.optimize"""
-        c = 0.01
-        C = self._construct_C(nodes)
-        prod = np.linalg.inv(C).dot(yp)
-        k_0 = self._find_k0(yp, prod)
-        C = k_0 * C
-        prod = np.linalg.inv(C).dot(yp)
-        k = self._kvec(x_tofit, nodes, k_0)
-        y_fit = np.transpose(k).dot(prod)
-        y_fit = y_fit - c*(k_0*math.exp(-(np.linalg.norm(x_tofit-x_tofit))**2/(2*self.l**2)) - np.transpose(k).dot(np.linalg.inv(C).dot(k)))
         return y_fit
 
     def costruct_training(self,n):
@@ -100,7 +104,7 @@ class GaussianFit:
 
 
 if __name__ == '__main__':
-    model = GaussianFit(0,0.63)
+    model = Fit(0,0.63)
     x_train, f_train = model.costruct_training(50)
     x_test,f_test = model.costruct_test(1000)
     y_fit = model.calculate_fit2(np.array([-1,2]), x_train, f_train)

@@ -3,6 +3,7 @@ import numpy as np
 import scipy.optimize
 import random
 
+"""
 delta = 0.01
 x = np.arange(-2.0,2.0, delta)
 y = np.arange(-1.0,3.0, delta)
@@ -13,6 +14,7 @@ fig, ax = plt.subplots()
 CS = ax.contour(X,Y,Z,18)
 ax.set_title("Adsorption  potetial energy surface")
 plt.show()
+"""
 
 """Exercise 1
 The ground state structure seems to be (1,1)"""
@@ -23,7 +25,7 @@ The ground state structure seems to be (1,1)"""
 def Rosenbrock(x):
     return np.log((2*(x[1]-x[0]**2))**2+(1-x[0])**2+1)
 
-def grad_rosen(x):
+def grad_rosen(x, *args):
     return np.array([(-16*x[0]*(x[1]-x[0]**2)-2*(1-x[0]))/\
                      (4*(x[1]-x[0]**2)**2+(1-x[0])**2+1),
                      (8*(x[1]-x[0]**2))/(4*(x[1]-x[0]**2)**2+(1-x[0])**2+1)])
@@ -63,3 +65,4 @@ if __name__ == '__main__':
         print(converged)
         print(f"Number of iterations {it[i]}")
         print(f"Average number of iterations = {sum(it)/10}\n")
+        print(Rosenbrock(np.array([-2.69119238,3.14398361])))
